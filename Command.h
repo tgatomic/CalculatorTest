@@ -12,6 +12,8 @@ public:
 	int Value;
 	std::string Register;
 	std::string SourceRegister;
+	std::string TargetRegister;
+	std::string OriginalOperation;
 	std::string Error;
 	std::string Operation;
 	bool IsNumber;

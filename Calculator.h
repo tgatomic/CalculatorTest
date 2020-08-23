@@ -6,9 +6,9 @@ class Calculator
 {
 private:
 	typedef int (*funptr)(int, int);
-	enum CommandTypeEnum { ADD, SUBTRACT, MULTIPLY, DIVIDE, RESULT, PRINT, QUIT, ERROR };
+	enum CommandTypeEnum { ADDITION, SUBTRACT, MULTIPLY, DIVIDE, RESULT, PRINT, QUIT, ERROR };
 	std::map<std::string, CommandTypeEnum> CommandType = {
-		{"add", ADD},
+		{"add", ADDITION},
 		{"subtract", SUBTRACT},
 		{"multiply", MULTIPLY},
 		{"divide", DIVIDE},

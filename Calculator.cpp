@@ -29,7 +29,7 @@ Calculator::Calculator(Console* console)
 
 Calculator::~Calculator()
 {
-	this->RunThread = false;
+	this->incommingCalculationsThread.join();
 }
 
 void Calculator::HandleIncommingCalculations()
@@ -42,6 +42,15 @@ void Calculator::HandleIncommingCalculations()
 		if (!consoleref->CommandQueue.empty())
 		{
 			Command newCommandString = consoleref->CommandQueue.front();
+
+			// To prevent clearing the queue of this event before main has time to read it
+			if (newCommandString.Operation == "quit")
+			{
+				this->PrintToConsole("quit");
+				consoleref->CommandQueueMutex.unlock();
+				return;
+			}
+
 			consoleref->CommandQueue.pop();
 
 			// Figure our what type of command we recieved
@@ -56,16 +65,23 @@ void Calculator::HandleIncommingCalculations()
 				this->CalculateResult(newCommandString, operations);
 				this->PrintToConsole(std::to_string(Registers[newCommandString.Register].Value));
 				break;
-
-			case ADD: case SUBTRACT: case MULTIPLY: case DIVIDE:
+			case DIVIDE:
+				if (newCommandString.Value == 0)
+				{
+					this->PrintToConsole("Division by zero not allowed");
+				}
+				else
+				{
+					this->CalculateResult(newCommandString, operations);
+				}
+				break;
+			case ADDITION: case SUBTRACT: case MULTIPLY:
 				this->CalculateResult(newCommandString, operations);
 				break;
 
 			default:
 				this->PrintToConsole("Error for register: " + newCommandString.Register);
 			}
-
-
 		}
 		consoleref->CommandQueueMutex.unlock();
 	}
@@ -85,11 +101,35 @@ void Calculator::CalculateResult(Command command, funptr operations[])
 		// Get what operations is supposed to be done; add, subtract, divide, multiply
 		CommandTypeEnum arethmicOperation = CommandType.find(command.Operation)->second;
 
+		int result = 0;
 		// Do the operation using functionpointer
-		int result = (operations[arethmicOperation])(Registers[command.Register].Value, command.Value);
+		if (command.SourceRegister != "")
+		{
+			if (Registers.find(command.SourceRegister) != Registers.end())
+			{
+				result = (operations[arethmicOperation])(Registers[command.Register].Value, Registers[command.SourceRegister].Value);
+			}
+			else
+			{
+				this->PrintToConsole("Error: Coudln't find register " + command.SourceRegister + " in register list");
+				return;
+			}
+		}
+		else
+		{
+			result = (operations[arethmicOperation])(Registers[command.Register].Value, command.Value);
+		}
 
 		// Save the result
 		Registers[command.Register].Value = result;
+		
+		// Add the "lazy evaluation"-code
+		if (command.TargetRegister != "")
+		{
+			CommandTypeEnum arethmicOperationOriginal = CommandType.find(command.OriginalOperation)->second;
+			Registers[command.TargetRegister].Value = (operations[arethmicOperationOriginal])(Registers[command.Register].Value, command.Value);
+		}
+
 	}
 	else
 	{

@@ -12,9 +12,24 @@ int main()
 
     Console console;
     Calculator calculator(&console);
+	bool RunMain = true;
 
-    while (true)
+    while (RunMain)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+		console.CommandQueueMutex.lock();
+		if (!console.CommandQueue.empty())
+		{
+			Command newCommandString = console.CommandQueue.front();
+
+			if (newCommandString.Operation.compare("quit") == 0)
+			{
+				RunMain = false;
+			}
+		}
+		console.CommandQueueMutex.unlock();
     }
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 }

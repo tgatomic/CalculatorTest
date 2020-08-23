@@ -18,10 +18,7 @@ Console::Console()
 
 Console::~Console()
 {
-	this->listenerThread.join();
-	this->parseThread.join();
 
-	std::cout << "Threads quit";
 }
 
 void Console::GetUserInput()
@@ -30,7 +27,7 @@ void Console::GetUserInput()
 	std::string command;
 	char nextCharacter;
 
-	while (RunThread)
+	while (this->RunThread)
 	{
 		while (std::cin.peek() == EOF && RunThread)
 		{
@@ -47,6 +44,11 @@ void Console::GetUserInput()
 			rxMessageQueue.push(command);
 			rxMessageMutex.unlock();
 			command = "";
+
+			if (command.compare("quit") == 0)
+			{
+				this->RunThread = false;
+			}
 		}
 		else
 		{
@@ -57,29 +59,33 @@ void Console::GetUserInput()
 
 void Console::ParseIncommingMessages()
 {
-	while (RunThread)
+	while (this->RunThread)
 	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		
 		rxMessageMutex.lock();
 		if (!rxMessageQueue.empty())
 		{
 			std::string newCommandString = rxMessageQueue.front();
 			rxMessageQueue.pop();
 
-			// CHECK IF QUIT IS WRITTEN AND EXIT APPLICATION
-
 			this->CommandQueueMutex.lock();
-			this->CommandQueue.push(CommandHandler::GetCommand(newCommandString));
+			Command newCommand = CommandHandler::GetCommand(newCommandString);
+			this->CommandQueue.push(newCommand);
 			this->CommandQueueMutex.unlock();
+
+			if (newCommand.Operation.compare("quit") == 0)
+			{
+				this->RunThread = false;
+			}
 		}
 		rxMessageMutex.unlock();
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
 
 void Console::WriteOutgoingMessages()
 {
-	while (true)
+	while (RunThread)
 	{
 		txMessageMutex.lock();
 		if (!txMessageQueue.empty())
@@ -87,7 +93,14 @@ void Console::WriteOutgoingMessages()
 			std::string message = this->txMessageQueue.front();
 			this->txMessageQueue.pop();
 
-			this->Write(message);
+			if (message.compare("quit") == 0)
+			{
+				this->RunThread = false;
+			}
+			else 
+			{
+				this->Write(message);
+			}
 		}
 		txMessageMutex.unlock();
 	}
