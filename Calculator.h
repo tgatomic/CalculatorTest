@@ -23,8 +23,10 @@ private:
 	std::map<std::string, Command> Registers;
 
 	void HandleIncommingCalculations();
-	void PrintToConsole(std::string);
 	void CalculateResult(Command, funptr[]);
+	void PrintLinkedRegister(Command, funptr[]);
+	int SolveLinkedRegisters(std::string, funptr[]);
+	void PrintToConsole(std::string);
 
 
 

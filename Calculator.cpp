@@ -59,7 +59,14 @@ void Calculator::HandleIncommingCalculations()
 			switch (command)
 			{
 			case PRINT:
-				this->PrintToConsole(std::to_string(Registers[newCommandString.Register].Value));
+				if (Registers[newCommandString.Register].linkedRegisters.size() > 0)
+				{
+					PrintLinkedRegister(newCommandString, operations);
+				}
+				else
+				{
+					this->PrintToConsole(std::to_string(Registers[newCommandString.Register].Value));
+				}
 				break;
 			case RESULT:
 				this->CalculateResult(newCommandString, operations);
@@ -91,50 +98,79 @@ void Calculator::CalculateResult(Command command, funptr operations[])
 {
 	if (Registers.find(command.Register) != Registers.end())
 	{
-		// Have an array with functions that corespond to the operations and use it to get the result,
-		// similar as can be found here: https://stackoverflow.com/questions/52900557/can-you-store-arithmetic-operators-in-an-array-i-e-in-c
-		// So the code ould look like
-
-		// int result = (operations[newCommandString.Operation])(Registers[newCommandString.Register].Value, newCommandString.Value)
-		// Registers[newCommandString.Register].Value = result;
-
-		// Get what operations is supposed to be done; add, subtract, divide, multiply
-		CommandTypeEnum arethmicOperation = CommandType.find(command.Operation)->second;
+		if (!command.IsNumber)
+		{
+			Registers[command.Register].linkedRegisters.push_back(command);
+			return;
+		}
 
 		int result = 0;
-		// Do the operation using functionpointer
-		if (command.SourceRegister != "")
+		CommandTypeEnum arethmicOperation = CommandType.find(command.Operation)->second;
+
+		// New command is a register
+		if ( command.SourceRegister != "")
 		{
-			if (Registers.find(command.SourceRegister) != Registers.end())
-			{
-				result = (operations[arethmicOperation])(Registers[command.Register].Value, Registers[command.SourceRegister].Value);
-			}
-			else
-			{
-				this->PrintToConsole("Error: Coudln't find register " + command.SourceRegister + " in register list");
-				return;
-			}
+			result = (operations[arethmicOperation])(Registers[command.Register].Value, Registers[command.SourceRegister].Value);
+			Registers[command.Register].Value = result;
 		}
+		// New command is an int
 		else
 		{
 			result = (operations[arethmicOperation])(Registers[command.Register].Value, command.Value);
+			Registers[command.Register].Value = result;
 		}
-
-		// Save the result
-		Registers[command.Register].Value = result;
-		
-		// Add the "lazy evaluation"-code
-		if (command.TargetRegister != "")
-		{
-			CommandTypeEnum arethmicOperationOriginal = CommandType.find(command.OriginalOperation)->second;
-			Registers[command.TargetRegister].Value = (operations[arethmicOperationOriginal])(Registers[command.Register].Value, command.Value);
-		}
-
 	}
 	else
 	{
-		Registers.insert({ command.Register, command });
+		if (!command.IsNumber)
+		{
+			Registers.insert({ command.Register, command });
+			Registers[command.Register].linkedRegisters.push_back(command);
+		}
+		else
+		{
+			Registers.insert({ command.Register, command });
+		}
 	}
+}
+
+int Calculator::SolveLinkedRegisters(std::string registerName, funptr operations[])
+{
+	std::list<Command>::iterator it;
+	int result = 0;
+
+	for (it = Registers[registerName].linkedRegisters.begin(); it != Registers[registerName].linkedRegisters.end(); ++it) {
+
+		if (Registers[it->SourceRegister].linkedRegisters.size() > 0)
+		{
+			int otherRegister = SolveLinkedRegisters(it->SourceRegister, operations);
+		}
+
+		CommandTypeEnum arethmicOperation = CommandType.find(it->OriginalOperation)->second;
+		result = (operations[arethmicOperation])(result, Registers[it->SourceRegister].Value);
+	}
+
+	return result;
+}
+
+void Calculator::PrintLinkedRegister(Command command, funptr operations[])
+{
+	std::list<Command>::iterator it;
+	int result = 0;
+	int otherRegister = 0;
+
+	for (it = Registers[command.Register].linkedRegisters.begin(); it != Registers[command.Register].linkedRegisters.end(); ++it) {
+
+		if (Registers[it->SourceRegister].linkedRegisters.size() > 0)
+		{
+			otherRegister = SolveLinkedRegisters(it->SourceRegister, operations);
+		}
+		
+		CommandTypeEnum arethmicOperation = CommandType.find(it->OriginalOperation)->second;
+		result = (operations[arethmicOperation])(result, Registers[it->SourceRegister].Value + otherRegister);
+	}
+
+	this->PrintToConsole(std::to_string(result));
 }
 
 void Calculator::PrintToConsole(std::string message)

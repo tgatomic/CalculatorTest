@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <map>
+#include <list>
 
 class Command
 {
@@ -17,6 +18,7 @@ public:
 	std::string Error;
 	std::string Operation;
 	bool IsNumber;
+	std::list <Command> linkedRegisters;
 
 	Command(std::string, std::string, std::string);
 	Command() {};
