@@ -17,18 +17,23 @@ bool Command::IsDigit(std::string str)
 }
 
 
-Command::Command(std::string reg, std::string command, std::string number)
+Command::Command(std::string reg, std::string command, std::string value)
 {
 
 	this->Register = reg;
-	this->Operation = CommandType.find(command)->second;
-	
-	if (IsDigit(number))
+	//this->Operation = CommandType.find(command)->second;
+	this->Operation = command;
+
+	if (IsDigit(value))
 	{
-		this->Value = std::stoi(number);
+		this->Value = std::stoi(value);
+		this->SourceRegister = "";
+		this->IsNumber = true;
 	}
 	else
 	{
 		this->Value = 0;
+		this->SourceRegister = value;
+		this->IsNumber = false;
 	}
 }

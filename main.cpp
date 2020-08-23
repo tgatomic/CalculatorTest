@@ -1,26 +1,10 @@
-// Calculator.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// main.c : This file contains the 'main' function. Program execution begins and ends there.
 //
-
 #include <iostream>
 #include <thread>
 
 #include "Console.h"
 #include "Calculator.h"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int main()
 {

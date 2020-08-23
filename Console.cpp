@@ -65,6 +65,8 @@ void Console::ParseIncommingMessages()
 			std::string newCommandString = rxMessageQueue.front();
 			rxMessageQueue.pop();
 
+			// CHECK IF QUIT IS WRITTEN AND EXIT APPLICATION
+
 			this->CommandQueueMutex.lock();
 			this->CommandQueue.push(CommandHandler::GetCommand(newCommandString));
 			this->CommandQueueMutex.unlock();
