@@ -14,6 +14,9 @@ Command CommandHandler::GetCommand(std::string newInput)
 	std::regex registerRegex("(\\w*) (\\w*) (\\w*)");
 	std::regex printRegex("print (\\w*)", ECMAScript | icase);
 
+	// Borrowed from https://stackoverflow.com/questions/313970/how-to-convert-stdstring-to-lower-case
+	std::transform(newInput.begin(), newInput.end(), newInput.begin(),
+		[](unsigned char c) { return std::tolower(c); });
 
 	if (std::regex_match(newInput.c_str(), printRegex))
 	{
@@ -32,11 +35,6 @@ Command CommandHandler::GetCommand(std::string newInput)
 		Command quitCommand("", "quit", "");
 		return quitCommand;
 	}
-
-
-	//std::regex_search(newInput, matches, r);
-	//std::regex_search(newInput, matches, r);
-	//Command testCommand(matches[1].str(), matches[2].str(), matches[3].str());
 
 	return testCommand;
 }

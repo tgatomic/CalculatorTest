@@ -19,7 +19,6 @@ int Divide(int a, int b) {
 	return a / b;
 }
 
-
 Calculator::Calculator(Console* console)
 {
 	this->consoleref = console;
@@ -34,17 +33,17 @@ Calculator::~Calculator()
 
 void Calculator::HandleIncommingCalculations()
 {
-	funptr operations[] = { Add, Subtract, Multiply, Divide };
+	funptr arethmicFunctions[] = { Add, Subtract, Multiply, Divide };
 
 	while (this->RunThread)
 	{
 		consoleref->CommandQueueMutex.lock();
 		if (!consoleref->CommandQueue.empty())
 		{
-			Command newCommandString = consoleref->CommandQueue.front();
+			Command newCommand = consoleref->CommandQueue.front();
 
-			// To prevent clearing the queue of this event before main has time to read it
-			if (newCommandString.Operation == "quit")
+			// To prevent clearing the queue of this event before main has time to read it and stop the program
+			if (newCommand.Operation == "quit")
 			{
 				this->PrintToConsole("quit");
 				consoleref->CommandQueueMutex.unlock();
@@ -53,70 +52,73 @@ void Calculator::HandleIncommingCalculations()
 
 			consoleref->CommandQueue.pop();
 
-			// Figure our what type of command we recieved
-			CommandTypeEnum command = CommandType.find(newCommandString.Operation)->second;			
+			// Make sure the operation is valid before continuing
+			if (CommandType.find(newCommand.Operation) == CommandType.end())
+			{
+				this->PrintToConsole("Operation " + newCommand.Operation + " not found. Input not added to register.");
+				consoleref->CommandQueueMutex.unlock();
+				continue;
+			}
+
+			CommandTypeEnum command = CommandType.find(newCommand.Operation)->second;			
 			
 			switch (command)
 			{
 			case PRINT:
-				if (Registers[newCommandString.Register].linkedRegisters.size() > 0)
-				{
-					PrintLinkedRegister(newCommandString, operations);
-				}
-				else
-				{
-					this->PrintToConsole(std::to_string(Registers[newCommandString.Register].Value));
-				}
+				this->PrintRegisterToConsole(newCommand, arethmicFunctions);
 				break;
+
 			case RESULT:
-				this->CalculateResult(newCommandString, operations);
-				this->PrintToConsole(std::to_string(Registers[newCommandString.Register].Value));
+				this->ProcessRegisterChange(newCommand, arethmicFunctions);
+				this->PrintToConsole(std::to_string(Registers[newCommand.Register].Value));
 				break;
+
 			case DIVIDE:
-				if (newCommandString.Value == 0)
+				if (newCommand.Value == 0)
 				{
 					this->PrintToConsole("Division by zero not allowed");
 				}
 				else
 				{
-					this->CalculateResult(newCommandString, operations);
+					this->ProcessRegisterChange(newCommand, arethmicFunctions);
 				}
 				break;
+
 			case ADDITION: case SUBTRACT: case MULTIPLY:
-				this->CalculateResult(newCommandString, operations);
+				this->ProcessRegisterChange(newCommand, arethmicFunctions);
 				break;
 
 			default:
-				this->PrintToConsole("Error for register: " + newCommandString.Register);
+				this->PrintToConsole("Error in register: " + newCommand.Register);
 			}
 		}
 		consoleref->CommandQueueMutex.unlock();
 	}
 }
 
-void Calculator::CalculateResult(Command command, funptr operations[])
+void Calculator::ProcessRegisterChange(Command command, funptr arethmicFunctions[])
 {
 	if (Registers.find(command.Register) != Registers.end())
 	{
 		if (!command.IsNumber)
 		{
-			Registers[command.Register].linkedRegisters.push_back(command);
+			Registers[command.Register].LinkedRegisters.push_back(command);
 			return;
 		}
 
 		int result = 0;
 		CommandTypeEnum arethmicOperation = CommandType.find(command.Operation)->second;
 
-		// New command is a register
 		if ( command.SourceRegister != "")
 		{
-			result = (operations[arethmicOperation])(Registers[command.Register].Value, Registers[command.SourceRegister].Value);
+			// The new input contains a register name as value New command is a register
+			result = (arethmicFunctions[arethmicOperation])(Registers[command.Register].Value, Registers[command.SourceRegister].Value);
 			Registers[command.Register].Value = result;
 		}
-		// New command is an int
 		else
 		{
-			result = (operations[arethmicOperation])(Registers[command.Register].Value, command.Value);
+			// New input value is an int
+			result = (arethmicFunctions[arethmicOperation])(Registers[command.Register].Value, command.Value);
 			Registers[command.Register].Value = result;
 		}
 	}
@@ -124,53 +126,75 @@ void Calculator::CalculateResult(Command command, funptr operations[])
 	{
 		if (!command.IsNumber)
 		{
+			// If the new input is a register, add it to the first registers, linked list
 			Registers.insert({ command.Register, command });
-			Registers[command.Register].linkedRegisters.push_back(command);
+			Registers[command.Register].LinkedRegisters.push_back(command);
 		}
 		else
 		{
+			// If the new input is a number, add it to the map with the number as value
 			Registers.insert({ command.Register, command });
 		}
 	}
 }
 
-int Calculator::SolveLinkedRegisters(std::string registerName, funptr operations[])
+int Calculator::SolveLinkedRegisters(std::string registerName, funptr arethmicFunctions[])
 {
 	std::list<Command>::iterator it;
 	int result = 0;
 
-	for (it = Registers[registerName].linkedRegisters.begin(); it != Registers[registerName].linkedRegisters.end(); ++it) {
+	for (it = Registers[registerName].LinkedRegisters.begin(); it != Registers[registerName].LinkedRegisters.end(); ++it) {
 
-		if (Registers[it->SourceRegister].linkedRegisters.size() > 0)
+		if (Registers[it->SourceRegister].LinkedRegisters.size() > 0)
 		{
-			int otherRegister = SolveLinkedRegisters(it->SourceRegister, operations);
+			int otherRegister = SolveLinkedRegisters(it->SourceRegister, arethmicFunctions);
 		}
 
 		CommandTypeEnum arethmicOperation = CommandType.find(it->OriginalOperation)->second;
-		result = (operations[arethmicOperation])(result, Registers[it->SourceRegister].Value);
+		result = (arethmicFunctions[arethmicOperation])(result, Registers[it->SourceRegister].Value);
 	}
 
 	return result;
 }
 
-void Calculator::PrintLinkedRegister(Command command, funptr operations[])
+void Calculator::PrintLinkedRegister(Command command, funptr arethmicFunctions[])
 {
 	std::list<Command>::iterator it;
 	int result = 0;
 	int otherRegister = 0;
 
-	for (it = Registers[command.Register].linkedRegisters.begin(); it != Registers[command.Register].linkedRegisters.end(); ++it) {
+	for (it = Registers[command.Register].LinkedRegisters.begin(); it != Registers[command.Register].LinkedRegisters.end(); ++it) {
 
-		if (Registers[it->SourceRegister].linkedRegisters.size() > 0)
+		if (Registers[it->SourceRegister].LinkedRegisters.size() > 0)
 		{
-			otherRegister = SolveLinkedRegisters(it->SourceRegister, operations);
+			otherRegister = SolveLinkedRegisters(it->SourceRegister, arethmicFunctions);
 		}
 		
 		CommandTypeEnum arethmicOperation = CommandType.find(it->OriginalOperation)->second;
-		result = (operations[arethmicOperation])(result, Registers[it->SourceRegister].Value + otherRegister);
+		result = (arethmicFunctions[arethmicOperation])(result, Registers[it->SourceRegister].Value + otherRegister);
 	}
 
 	this->PrintToConsole(std::to_string(result));
+}
+
+void Calculator::PrintRegisterToConsole(Command command, funptr arethmicFunctions[])
+{
+	if (Registers.find(command.Register) != Registers.end())
+	{
+		if (Registers[command.Register].LinkedRegisters.size() > 0)
+		{
+			PrintLinkedRegister(command, arethmicFunctions);
+		}
+		else
+		{
+			this->PrintToConsole(std::to_string(Registers[command.Register].Value));
+		}
+	}
+	else
+	{
+		this->PrintToConsole("Register " + command.Register + " not found");
+	}
+	
 }
 
 void Calculator::PrintToConsole(std::string message)

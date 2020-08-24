@@ -8,7 +8,6 @@ class Command
 private:
 	bool IsDigit(std::string str);
 
-
 public:
 	int Value;
 	std::string Register;
@@ -18,7 +17,7 @@ public:
 	std::string Error;
 	std::string Operation;
 	bool IsNumber;
-	std::list <Command> linkedRegisters;
+	std::list <Command> LinkedRegisters;
 
 	Command(std::string, std::string, std::string);
 	Command() {};
