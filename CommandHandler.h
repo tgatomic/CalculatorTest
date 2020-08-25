@@ -10,4 +10,3 @@ class CommandHandler
 public:
 	static Command GetCommand(std::string);
 };
-

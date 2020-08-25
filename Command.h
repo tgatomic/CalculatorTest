@@ -22,4 +22,3 @@ public:
 	Command(std::string, std::string, std::string);
 	Command() {};
 };
-

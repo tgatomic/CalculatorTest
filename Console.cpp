@@ -23,7 +23,7 @@ Console::~Console()
 
 void Console::GetUserInput()
 {
-	std::cout << "Starting Thread\n";
+	std::cout << "Type <registername> <operation> <register or number>\n";
 	std::string command;
 	char nextCharacter;
 

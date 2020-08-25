@@ -6,6 +6,11 @@
 
 Command CommandHandler::GetCommand(std::string newInput)
 {
+	/*
+	* Could defenetily be optimized and moved to Console class instead of being in a seperate class.
+	* 
+	*/
+	
 	using namespace std::regex_constants;
 
 	Command testCommand("", "error", "");
@@ -15,6 +20,7 @@ Command CommandHandler::GetCommand(std::string newInput)
 	std::regex printRegex("print (\\w*)", ECMAScript | icase);
 
 	// Borrowed from https://stackoverflow.com/questions/313970/how-to-convert-stdstring-to-lower-case
+	// makes the input lowecase
 	std::transform(newInput.begin(), newInput.end(), newInput.begin(),
 		[](unsigned char c) { return std::tolower(c); });
 

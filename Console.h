@@ -16,9 +16,6 @@ private:
 	std::queue<std::string> rxMessageQueue;
 	std::mutex rxMessageMutex;
 
-	
-
-
 	void GetUserInput();
 	void ParseIncommingMessages();
 	void Write(std::string);
@@ -33,12 +30,7 @@ public:
 	std::mutex txMessageMutex;
 
 	void WriteOutgoingMessages();
-	void Exit()
-	{
-		RunThread = false;
-	}
 
 	Console();
 	~Console();
 };
-

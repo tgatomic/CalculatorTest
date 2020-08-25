@@ -1,6 +1,5 @@
 #include <string>
 
-
 #include "Command.h"
 
 
@@ -10,9 +9,8 @@ bool Command::IsDigit(std::string str)
 	long int convertedNumber = std::strtol(str.c_str(), &p, 10);
 
 	if (*p)
-	{
 		return false;
-	}
+	
 	return true;
 }
 
@@ -38,6 +36,7 @@ Command::Command(std::string reg, std::string command, std::string value)
 	}
 	else
 	{
+		// Tells me that the last word is a registry that I want to link to the first registry
 		this->Value = 0;
 		this->SourceRegister = value;
 		this->TargetRegister = value;
